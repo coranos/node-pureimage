@@ -14,7 +14,7 @@ class Context {
       },
       set: function(val) {
         this._fillColor = Context.colorStringToUint32(val);
-        console.log('this._fillColor', this._fillColor.toString(16));
+        // console.log('this._fillColor', this._fillColor.toString(16));
         this._fillStyle_text = val;
       }
     });
