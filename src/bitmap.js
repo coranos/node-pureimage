@@ -23,13 +23,28 @@ class Bitmap {
   }
 
   alphaBlend(cA, aA, cB, aB) {
-    cA /= 255;
-    aA /= 255;
-    cB /= 255;
-    aB /= 255;
-    const result = (cA * aA) + ((cB * aB) * (1 - aA)) /
-      (aA + (aB * (1 - aA)))
-    return Math.trunc(result * 255);
+    const cA0 = cA / 255.;
+    const aA0 = aA / 255.;
+    const cB0 = cB / 255.;
+    const aB0 = aB / 255.;
+    const numeratorL = (cA0 * aA0);
+    const numeratorR = (cB0 * aB0);
+    const numerator = numeratorL + (numeratorR * (1. - aA0));
+    const denominator = (aA0 + (aB0 * (1. - aA0)));
+    let result = numerator / denominator;
+    if ((aA == 0) && (aB == 0)) {
+      result = 0;
+    }
+    const retval = Math.trunc(result * 255);
+
+    if (retval != cB) {
+      console.log('alphaBlend0', cA0, aA0, cB0, aB0, result, retval);
+      console.log('alphaBlend1', numerator, denominator);
+      console.log('alphaBlend2', numeratorL, numeratorR);
+      console.trace('alphaBlend3', cA, aA, cB, aB, 'returns', retval, 'not', cB);
+    }
+    return cB;
+    // return retval;
   }
 
   alphaBlendColorChannel(ix, channelIx, bytes) {
@@ -43,12 +58,18 @@ class Bitmap {
   }
 
   alphaBlendAlpha(alphaL, alphaR) {
-    alphaL /= 255;
-    alphaR /= 255;
-    const result = (alphaL + (alphaR * (1 - alphaL)));
+    const alphaL0 = alphaL / 255;
+    const alphaR0 = alphaR / 255;
+    const result = (alphaL0 + (alphaR0 * (1 - alphaL0)));
     const retval = Math.trunc(result * 255);
     // console.log('alphaBlendAlpha', alphaL, alphaR, retval);
-    return retval;
+    if (retval != alphaR) {
+      console.log('alphaBlend', alphaL, alphaR, 'returns', retval, 'not', alphaR);
+
+    }
+
+    // return retval;
+    return alphaR;
   }
 
   alphaBlendAlphaChannel(ix, bytes) {
@@ -59,19 +80,19 @@ class Bitmap {
   }
 
   alphaBlendPixel(ix, bytes) {
+    this.alphaBlendColorChannel(ix, 0, bytes);
     this.alphaBlendColorChannel(ix, 1, bytes);
     this.alphaBlendColorChannel(ix, 2, bytes);
-    this.alphaBlendColorChannel(ix, 3, bytes);
     this.alphaBlendAlphaChannel(ix, bytes);
   }
 
-  setPixelRGBA(x, y, rgba) {
+  NOT_setPixelRGBA(x, y, rgba) {
     let i = this.calculateIndex(x, y);
     const bytes = uint32.getBytesBigEndian(rgba);
     this.alphaBlendPixel(i, bytes);
   }
 
-  setPixelRGBA_i(x, y, r, g, b, a) {
+  NOT_setPixelRGBA_i(x, y, r, g, b, a) {
     let i = this.calculateIndex(x, y);
     let alphaL = this.data[i + 3];
     let alphaR = a;
@@ -80,6 +101,22 @@ class Bitmap {
     this.data[i + 2] = this.alphaBlend(this.data[i + 2], alphaL, b, alphaR);
     this.data[i + 3] = this.alphaBlendAlpha(alphaL, alphaR);
   }
+
+  setPixelRGBA(x,y,rgba) {
+       let i = this.calculateIndex(x, y);
+       const bytes = uint32.getBytesBigEndian(rgba);
+       this.data[i+0] = bytes[0];
+       this.data[i+1] = bytes[1];
+       this.data[i+2] = bytes[2];
+       this.data[i+3] = bytes[3];
+   }
+   setPixelRGBA_i(x,y,r,g,b,a) {
+       let i = this.calculateIndex(x, y);
+       this.data[i+0] = r;
+       this.data[i+1] = g;
+       this.data[i+2] = b;
+       this.data[i+3] = a;
+   }
 
   getPixelRGBA(x, y) {
     let i = this.calculateIndex(x, y);
