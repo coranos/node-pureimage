@@ -191,9 +191,14 @@ class Context {
         var ty = j / dh;
         var ssy = sy + Math.floor(ty * sh);
         var new_pixel = bitmap.getPixelRGBA(ssx, ssy);
-        var old_pixel = this.bitmap.getPixelRGBA(dx + i, dy + j);
-        var final_pixel = this.composite(dx + i, dy + j, old_pixel, new_pixel);
-        this.bitmap.setPixelRGBA(dx + i, dy + j, final_pixel);
+        const oldPt = {
+          x: dx + i,
+          y: dy + j
+        }
+        const newPt = this.transform.transformPoint(oldPt);
+        var old_pixel = this.bitmap.getPixelRGBA(oldPt.x, oldPt.y);
+        var final_pixel = this.composite(newPt.x, newPt.y, old_pixel, new_pixel);
+        this.bitmap.setPixelRGBA(newPt.x, newPt.y, final_pixel);
       }
     }
   }
