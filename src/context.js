@@ -196,7 +196,7 @@ class Context {
           y: dy + j
         }
         const newPt = this.transform.transformPoint(oldPt);
-        var old_pixel = this.bitmap.getPixelRGBA(oldPt.x, oldPt.y);
+        var old_pixel = this.bitmap.getPixelRGBA(newPt.x, newPt.y);
         var final_pixel = this.composite(newPt.x, newPt.y, old_pixel, new_pixel);
         this.bitmap.setPixelRGBA(newPt.x, newPt.y, final_pixel);
       }
