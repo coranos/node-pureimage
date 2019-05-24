@@ -210,18 +210,16 @@ class Context {
       for (let j = 0; j < dh; j++) {
         const ty = j / dh;
         const ssy = sy + Math.floor(ty * sh);
-        const get_pixel_ix = this.bitmap.calculateIndex(ssx, ssy);
         const oldPt = {
           x: dx + i,
           y: dy + j,
         };
         const newPt = this.transform.transformPoint(oldPt);
-        const set_pixel_ix = this.bitmap.calculateIndex(newPt.x, newPt.y);
-        this.bitmap.data.copy(this.bitmap.data, set_pixel_ix, get_pixel_ix, 4);
+        const new_pixel = bitmap.getPixelRGBA(ssx, ssy);
+        this.bitmap.setPixelRGBA(newPt.x, newPt.y, new_pixel);
       }
     }
   }
-
 
   // paths
   beginPath() {
