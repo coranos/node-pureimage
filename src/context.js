@@ -217,7 +217,7 @@ class Context {
         };
         const newPt = this.transform.transformPoint(oldPt);
         const set_pixel_ix = this.bitmap.calculateIndex(newPt.x, newPt.y);
-        this.bitmap.copy(this.bitmap, set_pixel_ix, get_pixel_ix, 4);
+        this.bitmap.data.copy(this.bitmap.data, set_pixel_ix, get_pixel_ix, 4);
       }
     }
   }
