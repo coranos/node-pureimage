@@ -1,8 +1,8 @@
-"use strict";
-var uint32 = require('./uint32');
-var NAMED_COLORS = require('./named_colors');
-var trans = require('./transform');
-var TEXT = require('./text');
+'use strict';
+const uint32 = require('./uint32');
+const NAMED_COLORS = require('./named_colors');
+const trans = require('./transform');
+const TEXT = require('./text');
 
 class Context {
   constructor(bitmap) {
@@ -16,7 +16,7 @@ class Context {
         this._fillColor = Context.colorStringToUint32(val);
         // console.log('this._fillColor', this._fillColor.toString(16));
         this._fillStyle_text = val;
-      }
+      },
     });
 
     this._strokeColor = 0x000000FF;
@@ -27,7 +27,7 @@ class Context {
       set: function(val) {
         this._strokeColor = Context.colorStringToUint32(val);
         this._strokeStyle_text = val;
-      }
+      },
     });
 
     this._lineWidth = 1;
@@ -37,7 +37,7 @@ class Context {
       },
       set: function(val) {
         this._lineWidth = val;
-      }
+      },
     });
 
     this._globalAlpha = 1;
@@ -47,13 +47,13 @@ class Context {
       },
       set: function(val) {
         this._globalAlpha = clamp(val, 0, 1);
-      }
+      },
     });
 
     this.transform = new trans.Transform();
     this._font = {
       family: 'invalid',
-      size: 12
+      size: 12,
     };
     Object.defineProperty(this, 'font', {
       get: function() {
@@ -61,12 +61,12 @@ class Context {
       },
       set: function(val) {
         val = val.trim();
-        var n = val.indexOf(' ');
-        var size = parseInt(val.slice(0, n));
-        var name = val.slice(n);
+        const n = val.indexOf(' ');
+        const size = parseInt(val.slice(0, n));
+        const name = val.slice(n);
         this._font.family = name;
         this._font.size = size;
-      }
+      },
     });
 
     this.imageSmoothingEnabled = true;
@@ -91,53 +91,53 @@ class Context {
   }
 
 
-  //simple rect
+  // simple rect
   fillRect(x, y, w, h) {
-    for (var i = x; i < x + w; i++) {
-      for (var j = y; j < y + h; j++) {
+    for (let i = x; i < x + w; i++) {
+      for (let j = y; j < y + h; j++) {
         this.fillPixel(i, j);
       }
     }
   }
   clearRect(x, y, w, h) {
-    for (var i = x; i < x + w; i++) {
-      for (var j = y; j < y + h; j++) {
+    for (let i = x; i < x + w; i++) {
+      for (let j = y; j < y + h; j++) {
         this.bitmap.setPixelRGBA(i, j, 0x00000000);
       }
     }
   }
   strokeRect(x, y, w, h) {
-    for (var i = x; i < x + w; i++) {
+    for (let i = x; i < x + w; i++) {
       this.bitmap.setPixelRGBA(i, y, this._strokeColor);
       this.bitmap.setPixelRGBA(i, y + h, this._strokeColor);
     }
-    for (var j = y; j < y + h; j++) {
+    for (let j = y; j < y + h; j++) {
       this.bitmap.setPixelRGBA(x, j, this._strokeColor);
       this.bitmap.setPixelRGBA(x + w, j, this._strokeColor);
     }
   }
 
 
-  //set single pixel
+  // set single pixel
   fillPixel(i, j) {
     if (!this.pixelInsideClip(i, j)) return;
-    var new_pixel = this.calculateRGBA(i, j);
-    var old_pixel = this.bitmap.getPixelRGBA(i, j);
-    var final_pixel = this.composite(i, j, old_pixel, new_pixel);
+    const new_pixel = this.calculateRGBA(i, j);
+    const old_pixel = this.bitmap.getPixelRGBA(i, j);
+    const final_pixel = this.composite(i, j, old_pixel, new_pixel);
     this.bitmap.setPixelRGBA(i, j, final_pixel);
   }
   strokePixel(i, j) {
     if (!this.pixelInsideClip(i, j)) return;
-    var new_pixel = this.calculateRGBA_stroke(i, j);
-    var old_pixel = this.bitmap.getPixelRGBA(i, j);
-    var final_pixel = this.composite(i, j, old_pixel, new_pixel);
+    const new_pixel = this.calculateRGBA_stroke(i, j);
+    const old_pixel = this.bitmap.getPixelRGBA(i, j);
+    const final_pixel = this.composite(i, j, old_pixel, new_pixel);
     this.bitmap.setPixelRGBA(i, j, final_pixel);
   }
   fillPixelWithColor(i, j, col) {
     if (!this.pixelInsideClip(i, j)) return;
-    var new_pixel = col;
-    var old_pixel = this.bitmap.getPixelRGBA(i, j);
-    var final_pixel = this.composite(i, j, old_pixel, new_pixel);
+    const new_pixel = col;
+    const old_pixel = this.bitmap.getPixelRGBA(i, j);
+    const final_pixel = this.composite(i, j, old_pixel, new_pixel);
     this.bitmap.setPixelRGBA(i, j, final_pixel);
   }
 
@@ -145,24 +145,24 @@ class Context {
     const old_rgba = uint32.getBytesBigEndian(old_pixel);
     const new_rgba = uint32.getBytesBigEndian(new_pixel);
 
-    //convert to range of 0->1
+    // convert to range of 0->1
     const A = new_rgba.map((b) => b / 255);
     const B = old_rgba.map((b) => b / 255);
-    //multiply by global alpha
+    // multiply by global alpha
     A[3] = A[3] * this._globalAlpha;
 
-    //do a standard composite (SRC_OVER)
+    // do a standard composite (SRC_OVER)
     function compit(ca, cb, aa, ab) {
       return (ca * aa + cb * ab * (1 - aa)) / (aa + ab * (1 - aa));
     }
     const C = A.map((comp, i) => compit(A[i], B[i], A[3], B[3]));
 
-    //convert back to 0->255 range
+    // convert back to 0->255 range
     const Cf = C.map((c) => c * 255);
     // Cf[3] = old_rgba[3];
     // console.log(this._globalAlpha, old_rgba,new_rgba, Cf);
 
-    //convert back to int
+    // convert back to int
     return uint32.fromBytesBigEndian(Cf[0], Cf[1], Cf[2], old_rgba[3]);
   }
   calculateRGBA(x, y) {
@@ -173,32 +173,51 @@ class Context {
   }
 
 
-  //get set image data
+  // get set image data
   getImageData(x, y, w, h) {
-    console.log("pretending to do something");
+    console.log('pretending to do something');
     return this.bitmap;
   }
   putImageData(id, x, y) {
-    console.log("pretending to do something");
+    console.log('pretending to do something');
   }
 
 
   drawImage(bitmap, sx, sy, sw, sh, dx, dy, dw, dh) {
-    for (var i = 0; i < dw; i++) {
-      var tx = i / dw;
-      var ssx = Math.floor(tx * sw) + sx;
-      for (var j = 0; j < dh; j++) {
-        var ty = j / dh;
-        var ssy = sy + Math.floor(ty * sh);
-        var new_pixel = bitmap.getPixelRGBA(ssx, ssy);
+    for (let i = 0; i < dw; i++) {
+      const tx = i / dw;
+      const ssx = Math.floor(tx * sw) + sx;
+      for (let j = 0; j < dh; j++) {
+        const ty = j / dh;
+        const ssy = sy + Math.floor(ty * sh);
+        const new_pixel = bitmap.getPixelRGBA(ssx, ssy);
         const oldPt = {
           x: dx + i,
-          y: dy + j
-        }
+          y: dy + j,
+        };
         const newPt = this.transform.transformPoint(oldPt);
-        var old_pixel = this.bitmap.getPixelRGBA(newPt.x, newPt.y);
-        var final_pixel = this.composite(newPt.x, newPt.y, old_pixel, new_pixel);
+        const old_pixel = this.bitmap.getPixelRGBA(newPt.x, newPt.y);
+        const final_pixel = this.composite(newPt.x, newPt.y, old_pixel, new_pixel);
         this.bitmap.setPixelRGBA(newPt.x, newPt.y, final_pixel);
+      }
+    }
+  }
+
+  drawImageNoComposite(bitmap, sx, sy, sw, sh, dx, dy, dw, dh) {
+    for (let i = 0; i < dw; i++) {
+      const tx = i / dw;
+      const ssx = Math.floor(tx * sw) + sx;
+      for (let j = 0; j < dh; j++) {
+        const ty = j / dh;
+        const ssy = sy + Math.floor(ty * sh);
+        const get_pixel_ix = this.bitmap.calculateIndex(ssx, ssy);
+        const oldPt = {
+          x: dx + i,
+          y: dy + j,
+        };
+        const newPt = this.transform.transformPoint(oldPt);
+        const set_pixel_ix = this.bitmap.calculateIndex(newPt.x, newPt.y);
+        this.bitmap.copy(this.bitmap, set_pixel_ix, get_pixel_ix, 4);
       }
     }
   }
@@ -211,7 +230,7 @@ class Context {
   moveTo(x, y) {
     return this._moveTo({
       x: x,
-      y: y
+      y: y,
     });
   }
   _moveTo(pt) {
@@ -222,33 +241,33 @@ class Context {
   lineTo(x, y) {
     return this._lineTo({
       x: x,
-      y: y
+      y: y,
     });
   }
   _lineTo(pt) {
     this.path.push(['l', this.transform.transformPoint(pt)]);
   }
   quadraticCurveTo(cp1x, cp1y, x, y) {
-    let cp1 = this.transform.transformPoint({
+    const cp1 = this.transform.transformPoint({
       x: cp1x,
-      y: cp1y
+      y: cp1y,
     });
-    let pt = this.transform.transformPoint({
+    const pt = this.transform.transformPoint({
       x: x,
-      y: y
+      y: y,
     });
     this.path.push(['q', cp1, pt]);
   }
   bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {
     this._bezierCurveTo({
       x: cp1x,
-      y: cp1y
+      y: cp1y,
     }, {
       x: cp2x,
-      y: cp2y
+      y: cp2y,
     }, {
       x: x,
-      y: y
+      y: y,
     });
   }
   _bezierCurveTo(cp1, cp2, pt) {
@@ -260,33 +279,33 @@ class Context {
 
   arc(x, y, rad, start, end, clockwise) {
     function calcPoint(ctx, type, angle) {
-      let px = x + Math.sin(angle) * rad;
-      let py = y + Math.cos(angle) * rad;
+      const px = x + Math.sin(angle) * rad;
+      const py = y + Math.cos(angle) * rad;
       return {
         x: px,
-        y: py
+        y: py,
       };
     }
     this._moveTo(calcPoint(this, 'm', start));
-    for (var a = start; a <= end; a += Math.PI / 16) {
+    for (let a = start; a <= end; a += Math.PI / 16) {
       this._lineTo(calcPoint(this, 'l', a));
     }
     this._lineTo(calcPoint(this, 'l', end));
   }
   arcTo() {
-    throw new Error("arcTo not yet supported");
+    throw new Error('arcTo not yet supported');
   }
   rect() {
-    throw new Error("rect not yet supported");
+    throw new Error('rect not yet supported');
   }
   ellipse() {
-    throw new Error("ellipse not yet supported");
+    throw new Error('ellipse not yet supported');
   }
   clip() {
     this._clip = pathToLines(this.path);
   }
   measureText() {
-    throw new Error("measureText not yet supported");
+    throw new Error('measureText not yet supported');
   }
 
   closePath() {
@@ -294,30 +313,30 @@ class Context {
   }
 
 
-  //stroke and fill paths
+  // stroke and fill paths
   stroke() {
     pathToLines(this.path).forEach((line) => this.drawLine(line));
   }
   drawLine(line) {
-    this.imageSmoothingEnabled ? this.drawLine_aa(line) : this.drawLine_noaa(line)
+    this.imageSmoothingEnabled ? this.drawLine_aa(line) : this.drawLine_noaa(line);
   }
   drawLine_noaa(line) {
-    //Bresenham's from Rosetta Code
+    // Bresenham's from Rosetta Code
     // http://rosettacode.org/wiki/Bitmap/Bresenham's_line_algorithm#JavaScript
-    var x0 = Math.floor(line.start.x);
-    var y0 = Math.floor(line.start.y);
-    var x1 = Math.floor(line.end.x);
-    var y1 = Math.floor(line.end.y);
-    var dx = Math.abs(x1 - x0),
-      sx = x0 < x1 ? 1 : -1;
-    var dy = Math.abs(y1 - y0),
-      sy = y0 < y1 ? 1 : -1;
-    var err = (dx > dy ? dx : -dy) / 2;
+    let x0 = Math.floor(line.start.x);
+    let y0 = Math.floor(line.start.y);
+    const x1 = Math.floor(line.end.x);
+    const y1 = Math.floor(line.end.y);
+    const dx = Math.abs(x1 - x0);
+    const sx = x0 < x1 ? 1 : -1;
+    const dy = Math.abs(y1 - y0);
+    const sy = y0 < y1 ? 1 : -1;
+    let err = (dx > dy ? dx : -dy) / 2;
 
     while (true) {
       this.strokePixel(x0, y0);
       if (x0 === x1 && y0 === y1) break;
-      var e2 = err;
+      const e2 = err;
       if (e2 > -dx) {
         err -= dy;
         x0 += sx;
@@ -334,18 +353,18 @@ class Context {
     let width = this._lineWidth;
     let x0 = Math.floor(line.start.x);
     let y0 = Math.floor(line.start.y);
-    let x1 = Math.floor(line.end.x);
-    let y1 = Math.floor(line.end.y);
-    let dx = Math.abs(x1 - x0),
-      sx = x0 < x1 ? 1 : -1;
-    let dy = Math.abs(y1 - y0),
-      sy = y0 < y1 ? 1 : -1;
+    const x1 = Math.floor(line.end.x);
+    const y1 = Math.floor(line.end.y);
+    const dx = Math.abs(x1 - x0);
+    const sx = x0 < x1 ? 1 : -1;
+    const dy = Math.abs(y1 - y0);
+    const sy = y0 < y1 ? 1 : -1;
 
-    let err = dx - dy,
-      e2, x2, y2;
-    let ed = dx + dy === 0 ? 1 : Math.sqrt(dx * dx + dy * dy);
-    let rgb = uint32.and(this._strokeColor, 0xFFFFFF00);
-    for (width = (width + 1) / 2;;) {
+    let err = dx - dy;
+    let e2; let x2; let y2;
+    const ed = dx + dy === 0 ? 1 : Math.sqrt(dx * dx + dy * dy);
+    const rgb = uint32.and(this._strokeColor, 0xFFFFFF00);
+    for (width = (width + 1) / 2; ;) {
       let alpha = ~~Math.max(0, 255 * (Math.abs(err - dx + dy) / ed - width + 1));
       var pixelColor = uint32.or(rgb, 255 - alpha);
       this.fillPixelWithColor(x0, y0, pixelColor);
@@ -379,60 +398,60 @@ class Context {
     this.imageSmoothingEnabled ? this.fill_aa() : this.fill_noaa();
   }
   fill_aa() {
-    //get just the color part
-    var rgb = uint32.and(this._fillColor, 0xFFFFFF00);
-    var lines = pathToLines(this.path);
-    var bounds = calcMinimumBounds(lines);
+    // get just the color part
+    const rgb = uint32.and(this._fillColor, 0xFFFFFF00);
+    const lines = pathToLines(this.path);
+    const bounds = calcMinimumBounds(lines);
 
-    var startY = Math.min(bounds.y2 - 1, this.bitmap.height);
-    var endY = Math.max(bounds.y, 0);
+    const startY = Math.min(bounds.y2 - 1, this.bitmap.height);
+    const endY = Math.max(bounds.y, 0);
 
-    for (var j = startY; j >= endY; j--) {
-      var ints = calcSortedIntersections(lines, j);
-      //fill between each pair of intersections
-      for (var i = 0; i < ints.length; i += 2) {
-        var fstartf = fract(ints[i]);
-        var fendf = fract(ints[i + 1]);
-        var start = Math.floor(ints[i]);
-        var end = Math.floor(ints[i + 1]);
-        for (var ii = start; ii <= end; ii++) {
+    for (let j = startY; j >= endY; j--) {
+      const ints = calcSortedIntersections(lines, j);
+      // fill between each pair of intersections
+      for (let i = 0; i < ints.length; i += 2) {
+        const fstartf = fract(ints[i]);
+        const fendf = fract(ints[i + 1]);
+        const start = Math.floor(ints[i]);
+        const end = Math.floor(ints[i + 1]);
+        for (let ii = start; ii <= end; ii++) {
           if (ii == start) {
-            //first
+            // first
             var int = uint32.or(rgb, (1 - fstartf) * 255);
             this.fillPixelWithColor(ii, j, int);
             continue;
           }
           if (ii == end) {
-            //last
+            // last
             var int = uint32.or(rgb, fendf * 255);
             this.fillPixelWithColor(ii, j, int);
             continue;
           }
-          //console.log("filling",ii,j);
+          // console.log("filling",ii,j);
           this.fillPixelWithColor(ii, j, this._fillColor);
         }
       }
     }
   }
   fill_noaa() {
-    //get just the color part
-    var rgb = uint32.and(this._fillColor, 0xFFFFFF00);
-    var lines = pathToLines(this.path);
-    var bounds = calcMinimumBounds(lines);
-    for (var j = bounds.y2 - 1; j >= bounds.y; j--) {
-      var ints = calcSortedIntersections(lines, j);
-      //fill between each pair of intersections
-      for (var i = 0; i < ints.length; i += 2) {
-        var start = Math.floor(ints[i]);
-        var end = Math.floor(ints[i + 1]);
-        for (var ii = start; ii <= end; ii++) {
+    // get just the color part
+    const rgb = uint32.and(this._fillColor, 0xFFFFFF00);
+    const lines = pathToLines(this.path);
+    const bounds = calcMinimumBounds(lines);
+    for (let j = bounds.y2 - 1; j >= bounds.y; j--) {
+      const ints = calcSortedIntersections(lines, j);
+      // fill between each pair of intersections
+      for (let i = 0; i < ints.length; i += 2) {
+        const start = Math.floor(ints[i]);
+        const end = Math.floor(ints[i + 1]);
+        for (let ii = start; ii <= end; ii++) {
           if (ii == start) {
-            //first
+            // first
             this.fillPixel(ii, j);
             continue;
           }
           if (ii == end) {
-            //last
+            // last
             this.fillPixel(ii, j);
             continue;
           }
@@ -442,17 +461,17 @@ class Context {
     }
   }
 
-  //even/odd rule. https://en.wikipedia.org/wiki/Point_in_polygon
-  //technically this is not correct as the default algorithm for
-  //html canvas is supposed to be the non-zero winding rule instead
+  // even/odd rule. https://en.wikipedia.org/wiki/Point_in_polygon
+  // technically this is not correct as the default algorithm for
+  // html canvas is supposed to be the non-zero winding rule instead
   pixelInsideClip(i, j) {
     if (!this._clip) return true;
     // console.log("checking for clip",i,j,this._clip);
-    //turn into a list of lines
+    // turn into a list of lines
     // calculate intersections with a horizontal line at j
-    var ints = calcSortedIntersections(this._clip, j);
+    const ints = calcSortedIntersections(this._clip, j);
     // find the intersections to the left of i (where x < i)
-    var left = ints.filter((inter) => inter < i);
+    const left = ints.filter((inter) => inter < i);
     // console.log("intersections = ", ints, left);
     if (left.length % 2 === 0) {
       // console.log("is even");
@@ -464,8 +483,7 @@ class Context {
   }
 
 
-
-  //stroke and fill text
+  // stroke and fill text
   fillText(text, x, y) {
     TEXT.processTextPath(this, text, x, y, true);
   }
@@ -476,9 +494,9 @@ class Context {
 
   static colorStringToUint32(str) {
     if (!str) return 0x000000;
-    //hex values always get 255 for the alpha channel
+    // hex values always get 255 for the alpha channel
     if (str.indexOf('#') == 0) {
-      var int = uint32.toUint32(parseInt(str.substring(1), 16));
+      let int = uint32.toUint32(parseInt(str.substring(1), 16));
       int = uint32.shiftLeft(int, 8);
       int = uint32.or(int, 0xff);
       return int;
@@ -486,10 +504,10 @@ class Context {
     if (str.indexOf('rgba') == 0) {
       var parts = str.trim().substring(4).replace('(', '').replace(')', '').split(',');
       return uint32.fromBytesBigEndian(
-        parseInt(parts[0]),
-        parseInt(parts[1]),
-        parseInt(parts[2]),
-        Math.floor(parseFloat(parts[3]) * 255));
+          parseInt(parts[0]),
+          parseInt(parts[1]),
+          parseInt(parts[2]),
+          Math.floor(parseFloat(parts[3]) * 255));
     }
     if (str.indexOf('rgb') == 0) {
       var parts = str.trim().substring(3).replace('(', '').replace(')', '').split(',');
@@ -498,9 +516,8 @@ class Context {
     if (NAMED_COLORS[str]) {
       return NAMED_COLORS[str];
     }
-    throw new Error("unknown style format: " + str);
+    throw new Error('unknown style format: ' + str);
   }
-
 }
 module.exports = Context;
 
@@ -513,14 +530,14 @@ function fract(v) {
 function makeLine(start, end) {
   return {
     start: start,
-    end: end
-  }
+    end: end,
+  };
 }
 
 
 function pathToLines(path) {
-  var lines = [];
-  var curr = null;
+  const lines = [];
+  let curr = null;
   path.forEach(function(cmd) {
     if (cmd[0] == 'm') {
       curr = cmd[1];
@@ -551,31 +568,31 @@ function pathToLines(path) {
 }
 
 function calcQuadraticAtT(p, t) {
-  var x = (1 - t) * (1 - t) * p[0].x + 2 * (1 - t) * t * p[1].x + t * t * p[2].x;
-  var y = (1 - t) * (1 - t) * p[0].y + 2 * (1 - t) * t * p[1].y + t * t * p[2].y;
+  const x = (1 - t) * (1 - t) * p[0].x + 2 * (1 - t) * t * p[1].x + t * t * p[2].x;
+  const y = (1 - t) * (1 - t) * p[0].y + 2 * (1 - t) * t * p[1].y + t * t * p[2].y;
   return {
     x: x,
-    y: y
+    y: y,
   };
 }
 
 function calcBezierAtT(p, t) {
-  var x = (1 - t) * (1 - t) * (1 - t) * p[0].x + 3 * (1 - t) * (1 - t) * t * p[1].x + 3 * (1 - t) * t * t * p[2].x + t * t * t * p[3].x;
-  var y = (1 - t) * (1 - t) * (1 - t) * p[0].y + 3 * (1 - t) * (1 - t) * t * p[1].y + 3 * (1 - t) * t * t * p[2].y + t * t * t * p[3].y;
+  const x = (1 - t) * (1 - t) * (1 - t) * p[0].x + 3 * (1 - t) * (1 - t) * t * p[1].x + 3 * (1 - t) * t * t * p[2].x + t * t * t * p[3].x;
+  const y = (1 - t) * (1 - t) * (1 - t) * p[0].y + 3 * (1 - t) * (1 - t) * t * p[1].y + 3 * (1 - t) * t * t * p[2].y + t * t * t * p[3].y;
   return {
     x: x,
-    y: y
+    y: y,
   };
 }
 
 
 function calcMinimumBounds(lines) {
-  var bounds = {
+  const bounds = {
     x: Number.MAX_VALUE,
     y: Number.MAX_VALUE,
     x2: Number.MIN_VALUE,
-    y2: Number.MIN_VALUE
-  }
+    y2: Number.MIN_VALUE,
+  };
 
   function checkPoint(pt) {
     bounds.x = Math.min(bounds.x, pt.x);
@@ -586,19 +603,19 @@ function calcMinimumBounds(lines) {
   lines.forEach(function(line) {
     checkPoint(line.start);
     checkPoint(line.end);
-  })
+  });
   return bounds;
 }
 
 
-//adapted from http://alienryderflex.com/polygon
+// adapted from http://alienryderflex.com/polygon
 function calcSortedIntersections(lines, y) {
-  var xlist = [];
-  for (var i = 0; i < lines.length; i++) {
-    var A = lines[i].start;
-    var B = lines[i].end;
+  const xlist = [];
+  for (let i = 0; i < lines.length; i++) {
+    const A = lines[i].start;
+    const B = lines[i].end;
     if (A.y < y && B.y >= y || B.y < y && A.y >= y) {
-      var xval = A.x + (y - A.y) / (B.y - A.y) * (B.x - A.x);
+      const xval = A.x + (y - A.y) / (B.y - A.y) * (B.x - A.x);
       xlist.push(xval);
     }
   }
@@ -606,7 +623,6 @@ function calcSortedIntersections(lines, y) {
     return a - b;
   });
 }
-
 
 
 function lerp(a, b, t) {
