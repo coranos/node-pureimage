@@ -178,10 +178,46 @@ class Context {
     console.log('pretending to do something');
     return this.bitmap;
   }
+
   putImageData(id, x, y) {
     console.log('pretending to do something');
   }
 
+  drawImageIncrementally(bitmap, sx, sy, sw, sh, dx, dy, dw, dh, ij) {
+    if (ij == undefined) {
+      ij = {};
+      ij.i = 0;
+      ij.j = 0;
+      ij.stop = false;
+    }
+    if (!ij.stop) {
+      if (ij.i < dw) {
+        const tx = i / dw;
+        const ssx = Math.floor(tx * sw) + sx;
+        if (ij.j < dh) {
+          const ty = j / dh;
+          const ssy = sy + Math.floor(ty * sh);
+          const new_pixel = bitmap.getPixelRGBA(ssx, ssy);
+          const oldPt = {
+            x: dx + i,
+            y: dy + j,
+          };
+          const newPt = this.transform.transformPoint(oldPt);
+          const old_pixel = this.bitmap.getPixelRGBA(newPt.x, newPt.y);
+          const final_pixel = this.composite(newPt.x, newPt.y, old_pixel, new_pixel);
+          this.bitmap.setPixelRGBA(newPt.x, newPt.y, final_pixel);
+          ij.j++;
+        } else {
+          ij.j = 0;
+          ij.i++;
+        }
+      } else {
+        ij.i = 0;
+        ij.stop = true;
+      }
+    }
+    return ij;
+  }
 
   drawImage(bitmap, sx, sy, sw, sh, dx, dy, dw, dh) {
     for (let i = 0; i < dw; i++) {
