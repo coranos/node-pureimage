@@ -192,15 +192,15 @@ class Context {
     }
     if (!ij.stop) {
       if (ij.i < dw) {
-        const tx = i / dw;
+        const tx = ij.i / dw;
         const ssx = Math.floor(tx * sw) + sx;
         if (ij.j < dh) {
-          const ty = j / dh;
+          const ty = ij.j / dh;
           const ssy = sy + Math.floor(ty * sh);
           const new_pixel = bitmap.getPixelRGBA(ssx, ssy);
           const oldPt = {
-            x: dx + i,
-            y: dy + j,
+            x: dx + ij.i,
+            y: dy + ij.j,
           };
           const newPt = this.transform.transformPoint(oldPt);
           const old_pixel = this.bitmap.getPixelRGBA(newPt.x, newPt.y);
