@@ -188,9 +188,11 @@ class Context {
       ij = {};
       ij.i = 0;
       ij.j = 0;
+      ij.count = 0;
       ij.stop = false;
     }
     if (!ij.stop) {
+      ij.count++;
       if (ij.i < dw) {
         const tx = ij.i / dw;
         const ssx = Math.floor(tx * sw) + sx;
